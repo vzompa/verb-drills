@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verb Tense Drill</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f4f0;min-height:100vh;display:flex;justify-content:center;padding:24px 16px}
+.app{width:100%;max-width:600px}
+h1{font-size:20px;font-weight:600;color:#1a1a18;text-align:center;margin-bottom:4px}
+.sub{font-size:13px;color:#888;text-align:center;margin-bottom:20px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.fbtn{padding:7px 15px;font-size:13px;border-radius:8px;border:1px solid #d4d3cb;background:#fff;color:#555;cursor:pointer}
+.fbtn.active{background:#1a1a18;color:#fff;border-color:#1a1a18}
+.scorebar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.bar{flex:1;height:6px;background:#e0dfd8;border-radius:99px;overflow:hidden}
+.fill{height:100%;background:#1D9E75;border-radius:99px;transition:width .3s}
+.scoretxt{font-size:13px;color:#888;white-space:nowrap}
+.card{background:#fff;border:1px solid #e4e3db;border-radius:14px;padding:20px 24px;margin-bottom:12px}
+.cardtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.badge{font-size:11px;padding:3px 10px;border-radius:6px;font-weight:500}
+.badge-present{background:#E1F5EE;color:#0F6E56}
+.badge-past{background:#E6F1FB;color:#185FA5}
+.badge-future{background:#EEEDFE;color:#534AB7}
+.sentence{font-size:22px;line-height:2.4;color:#1a1a18;margin-bottom:6px}
+.blank{display:inline-block;min-width:130px;border-bottom:2.5px solid #bbb;padding:0 6px;text-align:center;font-style:italic;color:#999;vertical-align:bottom}
+.blank.ok{border-color:#1D9E75;color:#0F6E56}
+.blank.bad{border-color:#E24B4A;color:#A32D2D}
+.hint-txt{font-size:13px;color:#aaa;margin-top:2px}
+.fb{font-size:14px;padding:10px 14px;border-radius:8px;margin-top:12px;line-height:1.5;display:none}
+.fb.show{display:block}
+.fb.ok{background:#E1F5EE;color:#0F6E56}
+.fb.bad{background:#FCEBEB;color:#A32D2D}
+.inputrow{display:flex;gap:8px;margin-bottom:8px}
+#di{flex:1;font-size:17px;padding:11px 14px;border:1px solid #d4d3cb;border-radius:10px;background:#fff;color:#1a1a18;outline:none}
+#di:focus{border-color:#888}
+#di:disabled{background:#f5f4f0;color:#aaa}
+#chkbtn{padding:11px 22px;font-size:15px;font-weight:500;border-radius:10px;border:none;background:#1a1a18;color:#fff;cursor:pointer}
+#chkbtn:disabled{background:#ccc;cursor:default}
+.secondrow{display:flex;gap:8px;min-height:36px;align-items:center;margin-top:4px}
+.sbtn{padding:7px 14px;font-size:13px;border-radius:8px;border:1px solid #d4d3cb;background:#fff;color:#555;cursor:pointer}
+@media(max-width:420px){.sentence{font-size:18px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Verb Tense Drill</h1>
+  <p class="sub">Type the correct verb form. Press Enter to check.</p>
+  <div class="filters" id="filters"></div>
+  <div class="scorebar">
+    <div class="bar"><div class="fill" id="fill" style="width:0%"></div></div>
+    <span class="scoretxt" id="scoretxt">0/0 correct</span>
+  </div>
+  <div class="card">
+    <div class="cardtop">
+      <span class="badge" id="badge"></span>
+      <span style="font-size:12px;color:#aaa" id="counter"></span>
+    </div>
+    <div class="sentence" id="sentence"></div>
+    <div class="hint-txt" id="hint"></div>
+    <div class="fb" id="fb"></div>
+  </div>
+  <div class="inputrow">
+    <input id="di" type="text" placeholder="Type the verb form…"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      oninput="onInput()" onkeydown="onKey(event)">
+    <button id="chkbtn" disabled onclick="doCheck()">Check</button>
+  </div>
+  <div class="secondrow" id="secondrow"></div>
+</div>
+<script>
+const Q=[
+  {s:["Every day, I"," to school."],h:"walk",a:["walk"],t:"present",n:"I/you/we/they + base verb (no -s)"},
+  {s:["She"," her bike to work every day."],h:"ride",a:["rides"],t:"present",n:"he/she/it → verb+s (ride → rides)"},
+  {s:["He"," coffee."],h:"not / like",a:["doesn't like","does not like"],t:"present",n:"he/she/it → doesn't + base verb"},
+  {s:[""," at the library?"],h:"you / study",a:["do you study"],t:"present",n:"Do + I/you/we/they + base verb?"},
+  {s:["Whales"," air."],h:"breathe",a:["breathe"],t:"present",n:"plural subject + base verb (no -s)"},
+  {s:[""," a fish?"],h:"a whale / be",a:["is a whale"],t:"present",n:"Is + he/she/it + ...?"},
+  {s:["He"," a bicycle."],h:"have",a:["has"],t:"present",n:"he/she/it → has (not have!)"},
+  {s:["They"," meat."],h:"not / eat",a:["don't eat","do not eat"],t:"present",n:"I/you/we/they → don't + base verb"},
+  {s:["Where","?"],h:"she / work",a:["does she work"],t:"present",n:"Does + he/she/it + base verb?"},
+  {s:["He"," English every night."],h:"study",a:["studies"],t:"present",n:"he/she/it → studies (y → ies)"},
+  {s:["I"," to the library to study."],h:"not / go",a:["don't go","do not go"],t:"present",n:"I/you/we/they → don't + base verb"},
+  {s:[""," a car?"],h:"she / have",a:["does she have"],t:"present",n:"Does + he/she/it + base verb?"},
+  {s:["Yesterday, I"," to school."],h:"walk",a:["walked"],t:"past",n:"regular verb → add -ed"},
+  {s:["She"," her bike yesterday."],h:"ride",a:["rode"],t:"past",n:"irregular: ride → rode"},
+  {s:[""," me last night?"],h:"you / call",a:["did you call"],t:"past",n:"Did + subject + base verb?"},
+  {s:["No, I"," you."],h:"not / call",a:["didn't call","did not call"],t:"past",n:"didn't + base verb (not 'called'!)"},
+  {s:["We"," for a few minutes."],h:"talk",a:["talked"],t:"past",n:"regular verb → add -ed"},
+  {s:["A dog"," in front of his bicycle."],h:"run",a:["ran"],t:"past",n:"irregular: run → ran"},
+  {s:["He"," to avoid the dog."],h:"try",a:["tried"],t:"past",n:"try → tried (y → ied)"},
+  {s:["She"," anything about him."],h:"not / say",a:["didn't say","did not say"],t:"past",n:"didn't + base verb (not 'said'!)"},
+  {s:["Tom"," in an accident yesterday."],h:"be",a:["was"],t:"past",n:"he/she/it → was"},
+  {s:[""," you about Tom?"],h:"she / tell",a:["did she tell"],t:"past",n:"Did + subject + base verb?"},
+  {s:["They"," in class yesterday."],h:"not / be",a:["weren't","were not"],t:"past",n:"they/we/you → weren't"},
+  {s:["He"," to hit the dog."],h:"not / want",a:["didn't want","did not want"],t:"past",n:"didn't + base verb (not 'wanted'!)"},
+  {s:["I"," in class tomorrow."],h:"be",a:["will be"],t:"future",n:"will + base verb"},
+  {s:["She"," to class tomorrow."],h:"not / come",a:["won't come","will not come"],t:"future",n:"won't + base verb"},
+  {s:[""," at home tonight?"],h:"you / be",a:["will you be"],t:"future",n:"Will + subject + base verb?"},
+  {s:["He"," hard next week."],h:"study",a:["will study"],t:"future",n:"will + base verb"},
+  {s:["They"," here next Monday."],h:"not / be",a:["won't be","will not be"],t:"future",n:"won't + base verb"},
+  {s:[""," you tomorrow?"],h:"she / call",a:["will she call"],t:"future",n:"Will + subject + base verb?"},
+];
+
+function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+
+let filter="all",deck=shuffle(Q),idx=0,correct=0,total=0,checked=false;
+
+function fd(){return filter==="all"?deck:deck.filter(q=>q.t===filter)}
+function cur(){const f=fd();return f[idx%f.length]}
+
+function renderCard(){
+  const q=cur(),f=fd();
+  const tLabel={present:"Simple present",past:"Simple past",future:"Future (will)"};
+  const tClass={present:"badge badge-present",past:"badge badge-past",future:"badge badge-future"};
+  document.getElementById("badge").textContent=tLabel[q.t];
+  document.getElementById("badge").className=tClass[q.t];
+  document.getElementById("counter").textContent=((idx%f.length)+1)+" / "+f.length;
+  document.getElementById("hint").textContent="verb hint: ("+q.h+")";
+  const sent=document.getElementById("sentence");
+  sent.innerHTML="";
+  if(q.s[0]){const sp=document.createElement("span");sp.textContent=q.s[0]+" ";sent.appendChild(sp)}
+  const bl=document.createElement("span");
+  bl.id="blank";bl.className="blank";bl.innerHTML="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+  sent.appendChild(bl);
+  if(q.s[1]){const sp=document.createElement("span");sp.textContent=" "+q.s[1];sent.appendChild(sp)}
+  const fb=document.getElementById("fb");
+  fb.className="fb";fb.innerHTML="";
+  const di=document.getElementById("di");
+  di.value="";di.disabled=false;
+  document.getElementById("chkbtn").disabled=true;
+  document.getElementById("secondrow").innerHTML="";
+  updateScore();
+  di.focus();
+}
+
+function renderFilters(){
+  const div=document.getElementById("filters");
+  div.innerHTML="";
+  ["all","present","past","future"].forEach(f=>{
+    const b=document.createElement("button");
+    b.className="fbtn"+(filter===f?" active":"");
+    b.textContent=f==="all"?"All tenses":f==="present"?"Present":f==="past"?"Past":"Future";
+    b.onclick=()=>setFilter(f);
+    div.appendChild(b);
+  });
+}
+
+function updateScore(){
+  const pct=total>0?Math.round(correct/total*100):0;
+  document.getElementById("fill").style.width=pct+"%";
+  document.getElementById("scoretxt").textContent=correct+"/"+total+" correct";
+}
+
+function updateBlank(){
+  const bl=document.getElementById("blank");
+  if(!bl||checked)return;
+  const val=document.getElementById("di").value;
+  bl.textContent=val||(String.fromCharCode(160).repeat(10));
+}
+
+function onInput(){
+  if(checked){
+    checked=false;
+    document.getElementById("fb").className="fb";
+    document.getElementById("secondrow").innerHTML="";
+    const bl=document.getElementById("blank");
+    if(bl)bl.className="blank";
+  }
+  updateBlank();
+  document.getElementById("chkbtn").disabled=!document.getElementById("di").value.trim();
+}
+
+function onKey(e){
+  if(e.key==="Enter"){if(checked)doNext();else doCheck();}
+}
+
+function doCheck(){
+  const q=cur();
+  const val=document.getElementById("di").value.trim().toLowerCase().replace(/\s+/g," ");
+  if(!val)return;
+  const ok=q.a.some(a=>a.toLowerCase()===val);
+  checked=true;total++;if(ok)correct++;
+  updateScore();
+  const bl=document.getElementById("blank");
+  const fb=document.getElementById("fb");
+  const di=document.getElementById("di");
+  if(ok){
+    bl.className="blank ok";bl.textContent=q.a[0];
+    fb.className="fb ok show";fb.textContent="✓ Correct!";
+    di.disabled=true;
+    document.getElementById("chkbtn").disabled=true;
+    setTimeout(doNext,1300);
+  } else {
+    bl.className="blank bad";bl.textContent=di.value;
+    fb.className="fb bad show";fb.textContent="Not quite. Try again, or see the answer.";
+    const row=document.getElementById("secondrow");
+    row.innerHTML="";
+    const sa=document.createElement("button");
+    sa.className="sbtn";sa.textContent="Show answer";
+    sa.onclick=()=>{
+      const fb2=document.getElementById("fb");
+      const bl2=document.getElementById("blank");
+      fb2.innerHTML="Answer: <strong>"+q.a[0]+"</strong><br><span style='font-size:12px;opacity:.85'>"+q.n+"</span>";
+      bl2.textContent=q.a[0];
+    };
+    row.appendChild(sa);
+    const nx=document.createElement("button");
+    nx.className="sbtn";nx.textContent="Next →";
+    nx.onclick=doNext;
+    row.appendChild(nx);
+  }
+}
+
+function doNext(){idx++;checked=false;renderCard();}
+
+function setFilter(f){
+  filter=f;idx=0;correct=0;total=0;checked=false;
+  deck=shuffle(Q);renderFilters();renderCard();
+}
+
+renderFilters();
+renderCard();
+</script>
+</body>
+</html>
